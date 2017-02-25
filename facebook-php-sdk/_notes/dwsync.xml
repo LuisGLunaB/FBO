@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<dwsync>
+<file name=".gitignore" server="mkti.mx/public_html/framework/" local="130808489360000000" remote="131136247200000000" Dst="2" />
+<file name=".scrutinizer.yml" server="mkti.mx/public_html/framework/" local="130808489360000000" remote="131136247200000000" Dst="2" />
+<file name=".travis.yml" server="mkti.mx/public_html/framework/" local="130808489360000000" remote="131136247200000000" Dst="2" />
+<file name="CHANGELOG.md" server="mkti.mx/public_html/framework/" local="130808489360000000" remote="131136247200000000" Dst="2" />
+<file name="composer.json" server="mkti.mx/public_html/framework/" local="130808489360000000" remote="131136247200000000" Dst="2" />
+<file name="CONTRIBUTING.md" server="mkti.mx/public_html/framework/" local="130808489360000000" remote="131136247200000000" Dst="2" />
+<file name="LICENSE" server="mkti.mx/public_html/framework/" local="130808489360000000" remote="131136247200000000" Dst="2" />
+<file name="phpunit.xml.dist" server="mkti.mx/public_html/framework/" local="130808489360000000" remote="131136247200000000" Dst="2" />
+<file name="README.md" server="mkti.mx/public_html/framework/" local="130808489360000000" remote="131136247200000000" Dst="2" />
+<file name=".gitignore" server="mkti.mx/public_html/yotta/" local="130808489360000000" remote="131161818000000000" Dst="2" />
+<file name=".scrutinizer.yml" server="mkti.mx/public_html/yotta/" local="130808489360000000" remote="131161818000000000" Dst="2" />
+<file name=".travis.yml" server="mkti.mx/public_html/yotta/" local="130808489360000000" remote="131161818000000000" Dst="2" />
+<file name="composer.json" server="mkti.mx/public_html/yotta/" local="130808489360000000" remote="131161818000000000" Dst="2" />
+<file name="CHANGELOG.md" server="mkti.mx/public_html/yotta/" local="130808489360000000" remote="131161818000000000" Dst="2" />
+<file name="CONTRIBUTING.md" server="mkti.mx/public_html/yotta/" local="130808489360000000" remote="131161818000000000" Dst="2" />
+<file name="LICENSE" server="mkti.mx/public_html/yotta/" local="130808489360000000" remote="131161818000000000" Dst="2" />
+<file name="phpunit.xml.dist" server="mkti.mx/public_html/yotta/" local="130808489360000000" remote="131161818000000000" Dst="2" />
+<file name="README.md" server="mkti.mx/public_html/yotta/" local="130808489360000000" remote="131161818000000000" Dst="2" />
+</dwsync>

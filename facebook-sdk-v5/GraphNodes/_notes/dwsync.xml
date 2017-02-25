@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<dwsync>
+<file name="Collection.php" server="mkti.mx/public_html/framework/" local="131136312478969717" remote="131136249000000000" Dst="2" />
+<file name="GraphAchievement.php" server="mkti.mx/public_html/framework/" local="131136312478982217" remote="131136249000000000" Dst="2" />
+<file name="GraphAlbum.php" server="mkti.mx/public_html/framework/" local="131136312478994717" remote="131136249000000000" Dst="2" />
+<file name="GraphApplication.php" server="mkti.mx/public_html/framework/" local="131136312479007217" remote="131136249000000000" Dst="2" />
+<file name="GraphCoverPhoto.php" server="mkti.mx/public_html/framework/" local="131136312479007217" remote="131136249000000000" Dst="2" />
+<file name="GraphEdge.php" server="mkti.mx/public_html/framework/" local="131136312479019717" remote="131136249000000000" Dst="2" />
+<file name="GraphEvent.php" server="mkti.mx/public_html/framework/" local="131136312479032218" remote="131136249000000000" Dst="2" />
+<file name="GraphGroup.php" server="mkti.mx/public_html/framework/" local="131136312479044718" remote="131136249000000000" Dst="2" />
+<file name="GraphList.php" server="mkti.mx/public_html/framework/" local="131136312479044718" remote="131136249000000000" Dst="2" />
+<file name="GraphLocation.php" server="mkti.mx/public_html/framework/" local="131136312479057218" remote="131136249000000000" Dst="2" />
+<file name="GraphNode.php" server="mkti.mx/public_html/framework/" local="131136312479069718" remote="131136249000000000" Dst="2" />
+<file name="GraphNodeFactory.php" server="mkti.mx/public_html/framework/" local="131136312479082218" remote="131136249000000000" Dst="2" />
+<file name="GraphObject.php" server="mkti.mx/public_html/framework/" local="131136312479094718" remote="131136249000000000" Dst="2" />
+<file name="GraphObjectFactory.php" server="mkti.mx/public_html/framework/" local="131136312479094718" remote="131136249000000000" Dst="2" />
+<file name="GraphPage.php" server="mkti.mx/public_html/framework/" local="131136312479107219" remote="131136249000000000" Dst="2" />
+<file name="GraphPicture.php" server="mkti.mx/public_html/framework/" local="131136312479119719" remote="131136249000000000" Dst="2" />
+<file name="GraphSessionInfo.php" server="mkti.mx/public_html/framework/" local="131136312479132219" remote="131136249000000000" Dst="2" />
+<file name="GraphUser.php" server="mkti.mx/public_html/framework/" local="131136312479132219" remote="131136249000000000" Dst="2" />
+<file name="Collection.php" server="mkti.mx/public_html/yotta/" local="131136312478969717" remote="131161819800000000" Dst="2" />
+<file name="GraphAchievement.php" server="mkti.mx/public_html/yotta/" local="131136312478982217" remote="131161819800000000" Dst="2" />
+<file name="GraphAlbum.php" server="mkti.mx/public_html/yotta/" local="131136312478994717" remote="131161819800000000" Dst="2" />
+<file name="GraphApplication.php" server="mkti.mx/public_html/yotta/" local="131136312479007217" remote="131161819800000000" Dst="2" />
+<file name="GraphCoverPhoto.php" server="mkti.mx/public_html/yotta/" local="131136312479007217" remote="131161819800000000" Dst="2" />
+<file name="GraphEdge.php" server="mkti.mx/public_html/yotta/" local="131136312479019717" remote="131161819800000000" Dst="2" />
+<file name="GraphEvent.php" server="mkti.mx/public_html/yotta/" local="131136312479032218" remote="131161819800000000" Dst="2" />
+<file name="GraphGroup.php" server="mkti.mx/public_html/yotta/" local="131136312479044718" remote="131161819800000000" Dst="2" />
+<file name="GraphList.php" server="mkti.mx/public_html/yotta/" local="131136312479044718" remote="131161819800000000" Dst="2" />
+<file name="GraphLocation.php" server="mkti.mx/public_html/yotta/" local="131136312479057218" remote="131161819800000000" Dst="2" />
+<file name="GraphNode.php" server="mkti.mx/public_html/yotta/" local="131136312479069718" remote="131161819800000000" Dst="2" />
+<file name="GraphNodeFactory.php" server="mkti.mx/public_html/yotta/" local="131136312479082218" remote="131161819800000000" Dst="2" />
+<file name="GraphObject.php" server="mkti.mx/public_html/yotta/" local="131136312479094718" remote="131161819800000000" Dst="2" />
+<file name="GraphObjectFactory.php" server="mkti.mx/public_html/yotta/" local="131136312479094718" remote="131161819800000000" Dst="2" />
+<file name="GraphPage.php" server="mkti.mx/public_html/yotta/" local="131136312479107219" remote="131161819800000000" Dst="2" />
+<file name="GraphPicture.php" server="mkti.mx/public_html/yotta/" local="131136312479119719" remote="131161819800000000" Dst="2" />
+<file name="GraphSessionInfo.php" server="mkti.mx/public_html/yotta/" local="131136312479132219" remote="131161819800000000" Dst="2" />
+<file name="GraphUser.php" server="mkti.mx/public_html/yotta/" local="131136312479132219" remote="131161819800000000" Dst="2" />
+</dwsync>
