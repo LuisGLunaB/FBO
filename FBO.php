@@ -98,6 +98,13 @@ class Facebook{
     return ( !is_null($this->Token) );
   }
 
+  public static function issetKey($var,$key){
+    if( isset($var[$key]) ){
+      return $var[$key];
+    }else{
+      return NULL;
+    }
+  }
   public static function parseNULL($key,&$parsed,&$datos){
     $parsed["$key"] = ( isset($datos["$key"]) ) ? $datos["$key"] : NULL;
   }
@@ -145,7 +152,39 @@ class Facebook{
 
     return $parsed;
   }
-  
+  public static function parseACCOUNT( $datos ){
+    //$fields = ["instagram_accounts"];
+    $parsed = array();
+    $c = 0;
+    foreach($datos as $dato){
+      $byNULL = ["id","name","access_token","username"];
+      foreach($byNULL as $key){
+        $parsed[$c][$key] = self::issetKey($dato, $key);
+      }
+
+      $parsed[$c]["perms"] = ( isset($dato["perms"]) ) ?
+      implode( ";", $dato["perms"] ) : NULL;
+
+      $parsed[$c]["picture"] = ( isset($dato["picture"]["data"]["url"]) ) ?
+      $dato["picture"]["data"]["url"] : NULL;
+
+      $parsed[$c]["cover"] = ( isset($dato["cover"]["source"]) ) ?
+      $dato["cover"]["source"] : NULL;
+
+      $parsed[$c]["instagram_accounts"] = NULL;
+      if( isset($dato["instagram_accounts"]) ){
+        $Instas = [];
+        foreach($dato["instagram_accounts"]["data"] as $Ins){
+          $Instas[] = (int) $Ins["id"];
+        }
+        $parsed[$c]["instagram_accounts"] = implode(";", $Instas);
+      }
+
+      $c++;
+    }
+    return $parsed;
+  }
+
   public function GET($get){
   	$fb = &$this->FB;
     $Token = &$this->Token;
@@ -188,6 +227,16 @@ class Facebook{
   public function PAGETOKEN($page){
     $query = "$page?fields=access_token";
     return $this->GET($query);
+  }
+  public function ACCOUNTS( $access_token = False ){
+    $fields = ["id","name","perms","username","instagram_accounts","picture","cover"];
+    if($access_token){ $fields[] = "access_token"; }
+    $fields = implode(",",$fields);
+
+    $query = "me/accounts?fields=$fields";
+    $this->GET($query);
+    $this->datos =$this->datos["data"];
+    $this->datos = $this->parseACCOUNT( $this->datos );
   }
 
   public function json($show=True,$isJSON=True){
