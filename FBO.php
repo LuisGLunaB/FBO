@@ -5,32 +5,31 @@ class Facebook{
     EVERY MAIN QUERY HAS DEFAULT FIELDS TO BE PASSED TO FACEBOOK
     EVERY QUERY IS PARSED IN ORDER TO HAVE AN STRUCTURED ASSOCIATIVE ARRAY
     WITH NO MISSING VALUES AT ALL (BUT WITH NULLS VALUES).*/
-  protected $app_id = '632416283438924';
   protected $app_secret = 'c478fbfb19e9f22f688b5db5144086c7';
+  protected $app_id = '632416283438924';
 
-  # Default attribute values
-  public $FB = NULL;
+  # Default connection values
+  public $FacebookConnection = NULL;
+  public $saveTokenWith = "COOKIE";
+  public $Token = NULL;
+
+  # Default state values
   public $status = True;
   public $message = "";
-  public $Token = NULL;
   public $datos = array();
-  public $saveTokenWith = "COOKIE"; // Where to save FB's Token
 
-  # Permissions to be requested to the user
-  public $permissions = ['public_profile','email','user_likes','user_friends',
-  'pages_show_list','read_page_mailboxes','read_insights',
-  'manage_pages','publish_pages','pages_messaging'];
 
-  # Platform methods
-  public function __construct($Token = NULL, $FB = NULL){
+  ## PLATFORM METHODS ##
+  # Facebook Connection Methods
+  public function __construct($Token = NULL, $FacebookConnection = NULL){
     # Start Framework and Session if needed
     if (session_status() == PHP_SESSION_NONE) {session_start();}
     define('FACEBOOK_SDK_V4_SRC_DIR', __DIR__ . '/facebook-sdk-v5/');
     require_once __DIR__ . '/facebook-sdk-v5/autoload.php';
 
     # Connect to Facebook is $FB is not given
-    if(is_null($FB)){
-      $this->CONNECT();
+    if( is_null($FacebookConnection) ){
+      $this->Connect2Facebook();
     }
 
     # Manage Token: Catch or load Token if Token is not given
@@ -44,20 +43,20 @@ class Facebook{
     }
 
   }
-  public function processError($message, $e = NULL, $exit = False){
+  public function processError($errorMessage, $errorObject = NULL, $exitExecution = False){
     # Every error in this Object leads here.
 
     # Concatenate message and set status to False
-    $emessage = ( is_null($e) ) ? "" : $e->getMessage();
+    $parsedMessage = ( is_null($errorObject) ) ? "" : $$errorObject->getMessage();
     $this->status = False;
-    $this->message = $message . " " . $emessage;
+    $this->message = $errorMessage . " " . $parsedMessage;
 
-    if($exit){exit;} # exit execution or not
+    if($exitExecution){exit;}
   }
-  public function CONNECT(){
+  public function Connect2Facebook(){
     # Connect to FB with the credentials
     try{
-      $this->FB = new Facebook\Facebook([
+      $this->FacebookConnection = new Facebook\Facebook([
         'app_id' => $this->app_id,
         'app_secret' => $this->app_secret,
         'default_graph_version' => 'v2.8']);
@@ -68,12 +67,12 @@ class Facebook{
 
   # Token handling methods
   public function catchToken(){
-    $fb = &$this->FB;
-  	$helper = $fb->getRedirectLoginHelper();
+  	$loginHelper = $this->FacebookConnection->getRedirectLoginHelper();
+    $newToken = NULL;
 
     # Try to get a new Token
   	try {
-  	  $Token = $helper->getAccessToken();
+  	  $newToken = $loginHelper->getAccessToken();
   	} catch(Facebook\Exceptions\FacebookResponseException $e) {
       $this->processError("Error al recuperar el Token en catchToken.", $e);
   	} catch(Facebook\Exceptions\FacebookSDKException $e) {
@@ -81,55 +80,49 @@ class Facebook{
   	}
 
     # If you fail, set Token to NULL
-  	if( isset($Token) ){
-      $this->Token = $Token;
-  	}else{
-      $this->Token = NULL;
-    }
+    $this->Token = ( is_null($newToken) ) ? NULL : $newToken;
 
   	return $this->Token;
   }
   public function refreshToken(){
-    $fb = &$this->FB;
-    $Token = &$this->Token;
-    $longLivedAccessToken = NULL;
+    $oldToken = $this->Token;
+    $newToken = NULL;
 
     # Try to enlongate Token
-    if( !is_null($Token) ){
+    if( !is_null($oldToken) ){
         try{
-        	$oAuth2Client = $fb->getOAuth2Client();
-        	$longLivedAccessToken = $oAuth2Client->getLongLivedAccessToken($Token);
+        	$oAuth2Client = $this->FacebookConnection->getOAuth2Client();
+        	$newToken = $oAuth2Client->getLongLivedAccessToken($oldToken);
         }catch(Exception $e){
           $this->processError("Error en refreshToken.",$e);
         }
-        $Token = $longLivedAccessToken;
     }else{
         $this->processError("No hay Token previo en refreshToken.");
     }
 
-  	return $longLivedAccessToken;
+    $this->Token = $newToken;
+  	return $this->Token;
   }
-  public function saveToken( $with = NULL ){
+  public function saveToken( $saveTokenWith = NULL ){
     # Save Token depending on the method
     $Token = $this->Token;
 
-    // Get saving method
-    $with = ( is_null($with) ) ? $this->saveTokenWith : $with;
+    $saveTokenWith = ( is_null($saveTokenWith) ) ? $this->saveTokenWith : $saveTokenWith;
 
     # If saving with a COOKIE then:
-    if($with=="COOKIE"){
+    if($saveTokenWith=="COOKIE"){
       $_COOKIE["FBTOKEN"] = $Token;
       setcookie("FBTOKEN", $Token, time() + 3600*24*30 ); //1 month
     }
 
   }
-  public function loadToken( $with=NULL){
+  public function loadToken( $saveTokenWith = NULL){
     # Load Token depending on the method
     // Get saving method
-    $with = ( is_null($with) ) ? $this->saveTokenWith : $with;
+    $saveTokenWith = ( is_null($saveTokenWith) ) ? $this->saveTokenWith : $saveTokenWith;
 
     # Loading from a COOKIE
-    if($with=="COOKIE"){
+    if($saveTokenWith=="COOKIE"){
       $this->Token = ( isset($_COOKIE["FBTOKEN"]) ) ? $_COOKIE["FBTOKEN"] : NULL;
     }
   }
@@ -138,122 +131,124 @@ class Facebook{
     return ( !is_null($this->Token) );
   }
 
-  public function getLogin($URL = "", $relative = True ){
+  public function getLogin($callbackURL = "", $isRelativePath = True, $userPermissions =
+              ['public_profile','email','user_likes','user_friends',
+              'pages_show_list','read_page_mailboxes','read_insights',
+              'manage_pages','publish_pages','pages_messaging'] ){
     # Get Login URL for the user to grant access to Facebook
-    $fb = &$this->FB;
-    $permissions = &$this->permissions;
 
-    # Build Callback URL
-    $URL = ($relative) ? "http://$_SERVER[HTTP_HOST]/$URL" : "$URL";
+    $loginURL = "";
+    $callbackURL = ($isRelativePath) ? "http://$_SERVER[HTTP_HOST]/$callbackURL" : "$callbackURL";
 
     # Try to request Login URL
     try{
-    	$helper = $fb->getRedirectLoginHelper();
-    	$loginUrl = $helper->getLoginUrl($URL, $permissions);
+    	$loginHelper = $this->FacebookConnection->getRedirectLoginHelper();
+    	$loginURL = $loginHelper->getLoginUrl($callbackURL, $userPermissions);
     }catch(Exception $e){
       $this->processError("Error en getLogin.",$e);
     }
 
-  	return htmlspecialchars($loginUrl);
+  	return htmlspecialchars($loginURL);
+  }
+
+
+  ## DATA HANDLING METHODS ##
+  # Secondary Parsing methods
+  public static function parseNULL($key,&$referencedData,$rawData){
+    # Check if a key exists: return its Value or NULL
+    # Add the key back to $parsed (by reference)
+    $referencedData[$key] = ( isset($rawData[$key]) ) ? $rawData[$key] : NULL;
+  }
+  public static function parseBoolean($key,&$referencedData,$rawData){
+    # Check if key exists: return NULL or Boolean to $parsed (by reference)
+    $referencedData[$key] = ( isset($rawData[$key]) ) ? $rawData[$key] : NULL;
+  }
+  public static function parse2Keys($key1,$key2,&$referencedData,$rawData){
+    # Check if array with 2 given keys exists: return its Value or NULL (by reference)
+    $jointKey = $key1."_".$key2;
+    $referencedData[$jointKey] = ( isset($rawData[$key1][$key2]) ) ? $rawData[$key1][$key2] : NULL;
+  }
+  public static function issetKey($array,$key){
+    # Check if an associative array has a key declared and return its Value.
+    $keyValue = ( isset($array[$key]) ) ? $array[$key] : NULL;
+    return $keyValue;
   }
 
   # Main Parsing methods
-  public static function parsePAGE( $datos ){
-    $parsed = array();
+  public static function parsePAGE( $rawPage ){
+    $parsedPage = array();
 
-    $byNULL = ["id","username","name","link","founded","category","products",
+    $parseByNullKeys = ["id","username","name","link","founded","category","products",
     "about","phone","website","place_type","fan_count","were_here_count",
     "checkins","rating_count","talking_about_count","overall_star_rating"];
-    foreach($byNULL as $key){self::parseNULL($key,$parsed,$datos);}
+    foreach($parseByNullKeys as $key){self::parseNULL($key, $parsedPage, $rawPage);}
 
-    $byBoolean = ["can_checkin"];
-    foreach($byBoolean as $key){self::parseBoolean($key,$parsed,$datos);}
+    $parseByBooleanKeys = ["can_checkin"];
+    foreach($parseByBooleanKeys as $key){self::parseBoolean($key, $parsedPage, $parsedPage);}
 
-    $by2Keys =[ ["cover","source"], ["location","city"],
+    $parseBy2Keys =[ ["cover","source"], ["location","city"],
     ["location","country"], ["location","latitude"], ["location","longitude"],
     ["location","street"], ["location","zip"] ];
-    foreach($by2Keys as $keys){
-      list($key1,$key2) = $keys;
-      self::parse2Keys($key1,$key2,$parsed,$datos);
+    foreach($parseBy2Keys as $keys){
+      list($key1, $key2) = $keys;
+      self::parse2Keys($key1, $key2, $parsedPage, $rawPage);
     }
 
     # Specific Parsings
-    $parsed["emails"] = isset($datos["emails"]) ? implode(";",$datos["emails"]) : NULL;
-    $parsed["picture_data_url"] = isset($datos["picture"]["data"]["url"]) ? $datos["picture"]["data"]["url"] : NULL;
-    if( isset($datos["category_list"]) ){
-      $categories = [];
-      foreach($datos["category_list"] as $category){
-        $categories[] = $category["name"];
+    $parsedPage["emails"] = isset($rawPage["emails"]) ? implode(";", $rawPage["emails"]) : NULL;
+    $parsedPage["picture_data_url"] = isset($rawPage["picture"]["data"]["url"]) ? $rawPage["picture"]["data"]["url"] : NULL;
+
+    # Parse all possible Page categories as a concatenated string with : and ;
+    if( isset($rawPage["category_list"]) ){
+      $parsedCategoriesList = [];
+      foreach( $rawPage["category_list"] as $rawCategory ){
+        $parsedCategoriesList[] = "$rawCategory[id]:$rawCategory[name]";
+        // $parsedCategoriesList[] = "468684511518871:Category Long Name;";
       }
-      $parsed["category_list"] = implode(";",$categories);
+      $parsedPage["category_list"] = implode(";",$parsedCategoriesList);
     }else{
-      $parsed["category_list"] = NULL;
+      $parsedPage["category_list"] = NULL;
     }
 
-    return $parsed;
+    return $parsedPage;
   }
-  public static function parseACCOUNT( $datos ){
+  public static function parseACCOUNTS( $rawAccounts ){
     //$fields = ["instagram_accounts"];
-    $parsed = array();
-    $c = 0;
-    foreach($datos as $dato){
-      $byNULL = ["id","name","access_token","username"];
-      foreach($byNULL as $key){
-        $parsed[$c][$key] = self::issetKey($dato, $key);
+    $parsedAccounts = array();
+    $rowIndex = 0;
+    foreach($rawAccounts as $singleAccount){
+      $parseByNullKeys = ["id","name","access_token","username"];
+      foreach($parseByNullKeys as $key){
+        $parsedAccounts[$rowIndex][$key] = self::issetKey($singleAccount, $key);
       }
 
-      $parsed[$c]["perms"] = ( isset($dato["perms"]) ) ?
-      implode( ";", $dato["perms"] ) : NULL;
+      $parsedAccounts[$rowIndex]["perms"] = ( isset($singleAccount["perms"]) ) ?
+      implode( ";", $singleAccount["perms"] ) : NULL;
 
-      $parsed[$c]["picture"] = ( isset($dato["picture"]["data"]["url"]) ) ?
-      $dato["picture"]["data"]["url"] : NULL;
+      $parsedAccounts[$rowIndex]["picture"] = ( isset($singleAccount["picture"]["data"]["url"]) ) ?
+      $singleAccount["picture"]["data"]["url"] : NULL;
 
-      $parsed[$c]["cover"] = ( isset($dato["cover"]["source"]) ) ?
-      $dato["cover"]["source"] : NULL;
+      $parsedAccounts[$rowIndex]["cover"] = ( isset($singleAccount["cover"]["source"]) ) ?
+      $singleAccount["cover"]["source"] : NULL;
 
-      $parsed[$c]["instagram_accounts"] = NULL;
-      if( isset($dato["instagram_accounts"]) ){
-        $Instas = [];
-        foreach($dato["instagram_accounts"]["data"] as $Ins){
-          $Instas[] = (int) $Ins["id"];
+      # Manage possible multiple Intagrams accounts for a single Facebook page.
+      $parsedAccounts[$rowIndex]["instagram_accounts"] = NULL;
+      if( isset($singleAccount["instagram_accounts"]) ){
+        $parsedInstagramAccountsList = [];
+        foreach($singleAccount["instagram_accounts"]["data"] as $rawInstagramAccount){
+          $parsedInstagramAccountsList[] = (int) $rawInstagramAccount["id"];
         }
-        $parsed[$c]["instagram_accounts"] = implode(";", $Instas);
+        $parsedAccounts[$rowIndex]["instagram_accounts"] = implode(";", $parsedInstagramAccountsList);
       }
 
-      $c++;
+      $rowIndex ++;
     }
-    return $parsed;
-  }
-
-  # Secondary Parsing methods
-  public static function parseNULL($key,&$parsed,&$datos){
-    # Check if a key exists: return its Value or NULL
-    # Add the key back to $parsed (by reference)
-    $parsed["$key"] = ( isset($datos["$key"]) ) ? $datos["$key"] : NULL;
-  }
-  public static function parseBoolean($key,&$parsed,&$datos){
-    # Check if key exists: return NULL or Boolean to $parsed (by reference)
-    $x = ( isset($datos["$key"]) ) ? $datos["$key"] : NULL;
-    if( $x=="true" or $x=="True" or $x=="TRUE"){ $x = 1; }
-    if( $x=="false" or $x=="False" or $x=="FALSE" ){ $x = 0; }
-    $parsed["$key"] = $x;
-  }
-  public static function parse2Keys($key1,$key2,&$parsed,&$datos){
-    # Check if array with 2 given keys exists: return its Value or NULL (by reference)
-    $parsed["$key1"."_$key2"] = ( isset($datos[$key1][$key2]) ) ? $datos[$key1][$key2] : NULL;
-  }
-  public static function issetKey($var,$key){
-    # Check if an associative array has a key declared and return its Value.
-    if( isset($var[$key]) ){
-      return $var[$key];
-    }else{
-      return NULL;
-    }
+    return $parsedAccounts;
   }
 
   # Data retriving methods
   public function GET($get){
-  	$fb = &$this->FB;
+  	$fb = &$this->FacebookConnection;
     $Token = &$this->Token;
     $datos = &$this->datos;
 
@@ -322,26 +317,33 @@ class Facebook{
     try{
       $this->GET($query);
       $this->datos =$this->datos["data"];
-      $this->datos = $this->parseACCOUNT( $this->datos );
+      $this->datos = $this->parseACCOUNTS( $this->datos );
     }catch(Exception $e){
       $this->processError("Error en ACCOUNTS.",$e);
     }
 
   }
 
-  # Data displaying methods
-  public function json($show=True,$isJSON=True){
+
+  ## DATA DISPLAYING METHODS ##
+  public function json( $echoJSON = True, $setJSONheader = True){
+    # Turns current state data into an API-friendly JSON representation.
 		$datos['status'] = $this->status;
 		$datos['message'] = $this->message;
 		$datos["data"] = $this->datos;
-		if($isJSON){header('Content-Type: application/json');}
-		$json = json_encode($datos, JSON_PRETTY_PRINT );
-		if($show){echo $json;}
-		return $json;
+
+		if($setJSONheader){ header('Content-Type: application/json'); }
+
+    $JSON = json_encode($datos, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+
+		if($echoJSON){echo $JSON;}
+
+		return $JSON;
 	}
   public function flush(){
-    $status = ($this->status) ? "True" : "False";
-    echo "status: ". $status."</br>";
+    # Echoes current state as Raw data.
+    $statusAsString = ($this->status) ? "True" : "False";
+    echo "status: ". $statusAsString."</br>";
     echo "message: ". $this->message."</br>";
     print_r($this->datos);
   }
