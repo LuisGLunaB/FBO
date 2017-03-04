@@ -12,9 +12,10 @@ $page = ( isset($_GET["page"]) ) ? $_GET["page"] : "mkti.mx";
 
 # If I have a Token, use it...
 if( $Face->hasToken() ){
-  $Face->PAGE( $page );
-  //$Face->ACCOUNTS( );
-  $Face->json();
+  //$Face->Token = "EAAIZCLePsr0wBAG1aJppgsbBDaDfpDTKAbwIOuid5FZC7bfGgIkrZColyMAcV04cd2o7xTK5ElhtA1YVsAykin8QFuLw67awMKw0UI7MBhPLZAu630ZCAj0rGc3ZAILr4PF7aEwcirTx5vrgi8gJiPrSHtikZAgare3y7DDoPV2CQZDZD";
+  //$Face->getACCOUNTS();
+  //$Face->getCONVERSATIONS( 346211398819387 );
+  $Face->json( $Face->getAllCONVERSATIONS() );
 }else{
   # ...if not, request access.
   $loginURL = $Face->getLogin();

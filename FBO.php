@@ -5,22 +5,10 @@ class Facebook{
     EVERY MAIN QUERY HAS DEFAULT FIELDS TO BE PASSED TO FACEBOOK
     EVERY QUERY IS PARSED IN ORDER TO HAVE AN STRUCTURED ASSOCIATIVE ARRAY
     WITH NO MISSING VALUES AT ALL (BUT WITH NULLS VALUES).*/
-  protected $app_secret = 'c478fbfb19e9f22f688b5db5144086c7';
-  protected $app_id = '632416283438924';
-
-  # Default connection values
-  public $FacebookConnection = NULL;
-  public $saveTokenWith = "COOKIE";
-  public $Token = NULL;
-
-  # Default state values
-  public $status = True;
-  public $message = "";
-  public $datos = array();
 
 
   ## PLATFORM METHODS ##
-  # Facebook Connection Methods
+  # facebook connection methods
   public function __construct($Token = NULL, $FacebookConnection = NULL){
     # Start Framework and Session if needed
     if (session_status() == PHP_SESSION_NONE) {session_start();}
@@ -43,13 +31,14 @@ class Facebook{
     }
 
   }
-  public function processError($errorMessage, $errorObject = NULL, $exitExecution = False){
+  public function processError($errorMessage, $errorObject = NULL, $exitExecution = True){
     # Every error in this Object leads here.
 
     # Concatenate message and set status to False
-    $parsedMessage = ( is_null($errorObject) ) ? "" : $$errorObject->getMessage();
+    $parsedMessage = ( is_null($errorObject) ) ? "" : $errorObject->getMessage();
     $this->status = False;
     $this->message = $errorMessage . " " . $parsedMessage;
+    echo $this->message;
 
     if($exitExecution){exit;}
   }
@@ -65,7 +54,7 @@ class Facebook{
     }
   }
 
-  # Token handling methods
+  # token handling methods
   public function catchToken(){
   	$loginHelper = $this->FacebookConnection->getRedirectLoginHelper();
     $newToken = NULL;
@@ -152,29 +141,132 @@ class Facebook{
   }
 
 
-  ## DATA HANDLING METHODS ##
-  # Secondary Parsing methods
-  public static function parseNULL($key,&$referencedData,$rawData){
-    # Check if a key exists: return its Value or NULL
-    # Add the key back to $parsed (by reference)
-    $referencedData[$key] = ( isset($rawData[$key]) ) ? $rawData[$key] : NULL;
+  ## DATA RETRIEVING METHODS ##
+  public function GET($get, $Token = NULL){
+  	$fb = &$this->FacebookConnection;
+    $Token = (is_null($Token)) ? $this->Token : $Token;
+
+    try{
+      $fb->setDefaultAccessToken($Token);
+    }catch(Exception $e){
+      $this->processError("Error al dar Token en GET.",$e);
+    }
+
+  	try {
+  	  $response = $fb->get($get);
+  	} catch(Facebook\Exceptions\FacebookResponseException $e) {
+      $this->processError("Error de Respuesta en GET.",$e);
+  	} catch(Facebook\Exceptions\FacebookSDKException $e) {
+      $this->processError("Error al SDK en GET.",$e);
+  	}
+
+    try{
+      $datos = $response->getDecodedBody();
+    }catch(Exception $e){
+      $this->processError("Error al crear array en GET.",$e);
+    }
+
+  	return $datos;
   }
-  public static function parseBoolean($key,&$referencedData,$rawData){
-    # Check if key exists: return NULL or Boolean to $parsed (by reference)
-    $referencedData[$key] = ( isset($rawData[$key]) ) ? $rawData[$key] : NULL;
+  public function getPAGE($page){
+    $identification = ["id","username","name","link"];
+    $image = ["cover","picture"];
+    $info = ["founded","category","category_list","description","products","about"];
+    $contact = ["emails","phone","website"];
+    $location = ["location","place_type","can_checkin"];
+    $insights = ["fan_count","were_here_count","checkins",
+    "rating_count","talking_about_count","overall_star_rating"];
+
+    $fields = array_merge($identification,$image,$info,$contact,$location,$insights);
+    $fields = implode(",",$fields);
+
+    $query = "$page?fields=$fields";
+
+    try{
+      $this->GET($query);
+      $this->datos = $this->parsePAGE( $this->datos );
+    }catch(Exception $e){
+      $this->processError("Error en PAGE.",$e);
+    }
+
   }
-  public static function parse2Keys($key1,$key2,&$referencedData,$rawData){
-    # Check if array with 2 given keys exists: return its Value or NULL (by reference)
-    $jointKey = $key1."_".$key2;
-    $referencedData[$jointKey] = ( isset($rawData[$key1][$key2]) ) ? $rawData[$key1][$key2] : NULL;
+  public function getPAGETOKEN($page){
+    $query = "$page?fields=access_token";
+
+    try{
+      $this->GET($query);
+    }catch(Exception $e){
+      $this->processError("Error en PAGETOKEN.",$e);
+    }
+
+    return $this->datos;
   }
-  public static function issetKey($array,$key){
-    # Check if an associative array has a key declared and return its Value.
-    $keyValue = ( isset($array[$key]) ) ? $array[$key] : NULL;
-    return $keyValue;
+  public function getCONVERSATIONS($pageIdentifier , $parseMessages = False){
+    $limit = 1000;
+    $conversationFields = ["id","link","message_count","participants",
+      "unread_count","updated_time","can_reply","is_subscribed"];
+    $conversationFields = implode( "," , $conversationFields);
+
+    if($parseMessages){
+      $messagesFields = ["message","attachments","id","from","created_time"];
+      $messagesFields = implode( "," , $messagesFields);
+      $messagesFields = ",messages.limit($limit){ $messagesFields}";
+    }else{
+      $messagesFields = "";
+    }
+
+    $query = "$pageIdentifier/conversations?fields=$conversationFields$messagesFields&limit=$limit";
+
+    $pageToken = $this->getPageAccessTokenOf( $pageIdentifier );
+    try{
+      $this->Conversations = $this->GET( $query , $pageToken );
+      $this->Conversations = $this->parseCONVERSATIONS( $this->Conversations , $parseMessages );
+    }catch(Exception $e){
+      $this->processError("Error en CONVERSATIONS.",$e);
+    }
+  }
+  public function getAllCONVERSATIONS(){
+    $allConversations = array();
+    $this->Accounts = $this->getACCOUNTS( True );
+    foreach($this->Accounts as $Account){
+      $this->getCONVERSATIONS( $Account["id"] );
+      $allConversations["id_fanpage_$Account[id]"] = $this->Conversations;
+    }
+
+    return $allConversations;
+  }
+  public function getACCOUNTS( $getAccessTokens = True, $minimumAdminLevel = 3 ){
+    $fields = ["id","name","perms","username","instagram_accounts","picture","cover"];
+    if($getAccessTokens){ $fields[] = "access_token"; }
+    $fields = implode(",",$fields);
+
+    $query = "me/accounts?fields=$fields";
+
+    try{
+      $this->Accounts = $this->GET( $query );
+      $this->Accounts = $this->parseACCOUNTS( $this->Accounts , $minimumAdminLevel );
+    }catch(Exception $e){
+      $this->processError("Error en ACCOUNTS.",$e);
+    }
+
+    return $this->Accounts;
+  }
+  public function getPageAccessTokenOf( $pageIdentifier ){
+    $pageToken = NULL;
+    $this->Accounts = ( sizeof($this->Accounts)==0 ) ? $this->getACCOUNTS( True ) : $this->Accounts;
+
+    foreach($this->Accounts as $Account){
+      if( ($Account["id"] == $pageIdentifier) or ($Account["username"] == $pageIdentifier) ){
+        $pageToken = $Account["access_token"];
+        break;
+      }
+    }
+    return $pageToken;
   }
 
-  # Main Parsing methods
+
+  ## DATA HANDLING METHODS ##
+  # main parsing methods
   public static function parsePAGE( $rawPage ){
     $parsedPage = array();
 
@@ -212,18 +304,48 @@ class Facebook{
 
     return $parsedPage;
   }
-  public static function parseACCOUNTS( $rawAccounts ){
-    //$fields = ["instagram_accounts"];
+  public static function parseCONVERSATIONS ( $rawConversations , $parseMessages = False ){
+    $oneShotParsingFields = ["id","link","updated_time","message_count","unread_count",
+      "can_reply","is_subscribed"];
+    $parsedConversations = array();
+
+    $rowIndex = 0;
+    foreach($rawConversations["data"] as $singleConversation){
+
+      $parsedConversations[$rowIndex]["id_fanpage"] = $singleConversation["participants"]["data"][1]["id"];
+      $parsedConversations[$rowIndex]["from_id"] = $singleConversation["participants"]["data"][0]["id"];
+      $parsedConversations[$rowIndex]["from_email"] = $singleConversation["participants"]["data"][0]["email"];
+      $parsedConversations[$rowIndex]["from_name"] = $singleConversation["participants"]["data"][0]["name"];
+
+      foreach($oneShotParsingFields as $field){
+        if( array_key_exists($field, $singleConversation) ){
+          $parsedConversations[$rowIndex][$field] = $singleConversation[$field];
+        }else{
+          $parsedConversations[$rowIndex][$field] = NULL;
+        }
+      }//foreach fields
+      $parsedConversations[$rowIndex]["unread_count"] =
+        ( is_null($parsedConversations[$rowIndex]["unread_count"]) )
+         ? 0 : $parsedConversations[$rowIndex]["unread_count"];
+      $rowIndex++;
+    }//foeach conversations
+
+    return $parsedConversations;
+  }
+  public static function parseACCOUNTS( $rawAccounts , $minimumAdminLevel = 3 ){
     $parsedAccounts = array();
     $rowIndex = 0;
-    foreach($rawAccounts as $singleAccount){
+    foreach($rawAccounts["data"] as $singleAccount){
+      # Check if account is worth parsing
+      $adminLevel = sizeof($singleAccount["perms"]);
+      if($adminLevel < $minimumAdminLevel){continue;}
+
+      $parsedAccounts[$rowIndex]["admin_level"] = $adminLevel;
+
       $parseByNullKeys = ["id","name","access_token","username"];
       foreach($parseByNullKeys as $key){
         $parsedAccounts[$rowIndex][$key] = self::issetKey($singleAccount, $key);
       }
-
-      $parsedAccounts[$rowIndex]["perms"] = ( isset($singleAccount["perms"]) ) ?
-      implode( ";", $singleAccount["perms"] ) : NULL;
 
       $parsedAccounts[$rowIndex]["picture"] = ( isset($singleAccount["picture"]["data"]["url"]) ) ?
       $singleAccount["picture"]["data"]["url"] : NULL;
@@ -242,95 +364,38 @@ class Facebook{
       }
 
       $rowIndex ++;
-    }
+    }//foreach account
     return $parsedAccounts;
   }
 
-  # Data retriving methods
-  public function GET($get){
-  	$fb = &$this->FacebookConnection;
-    $Token = &$this->Token;
-    $datos = &$this->datos;
-
-    try{
-      $fb->setDefaultAccessToken($Token);
-    }catch(Exception $e){
-      $this->processError("Error al dar Token en GET.",$e);
-    }
-
-  	try {
-  	  $response = $fb->get($get);
-  	} catch(Facebook\Exceptions\FacebookResponseException $e) {
-      $this->processError("Error de Respuesta en GET.",$e);
-  	} catch(Facebook\Exceptions\FacebookSDKException $e) {
-      $this->processError("Error al SDK en GET.",$e);
-  	}
-
-    try{
-      $datos = $response->getDecodedBody();
-    }catch(Exception $e){
-      $this->processError("Error al crear array en GET.",$e);
-    }
-
-  	return $datos;
+  # secondary parsing methods
+  public static function parseNULL($key,&$referencedData,$rawData){
+    # Check if a key exists: return its Value or NULL
+    # Add the key back to $parsed (by reference)
+    $referencedData[$key] = ( isset($rawData[$key]) ) ? $rawData[$key] : NULL;
   }
-  public function PAGE($page){
-    $identification = ["id","username","name","link"];
-    $image = ["cover","picture"];
-    $info = ["founded","category","category_list","description","products","about"];
-    $contact = ["emails","phone","website"];
-    $location = ["location","place_type","can_checkin"];
-    $insights = ["fan_count","were_here_count","checkins",
-    "rating_count","talking_about_count","overall_star_rating"];
-
-    $fields = array_merge($identification,$image,$info,$contact,$location,$insights);
-    $fields = implode(",",$fields);
-
-    $query = "$page?fields=$fields";
-
-    try{
-      $this->GET($query);
-      $this->datos = $this->parsePAGE( $this->datos );
-    }catch(Exception $e){
-      $this->processError("Error en PAGE.",$e);
-    }
-
+  public static function parseBoolean($key,&$referencedData,$rawData){
+    # Check if key exists: return NULL or Boolean to $parsed (by reference)
+    $referencedData[$key] = ( isset($rawData[$key]) ) ? $rawData[$key] : NULL;
   }
-  public function PAGETOKEN($page){
-    $query = "$page?fields=access_token";
-
-    try{
-      $this->GET($query);
-    }catch(Exception $e){
-      $this->processError("Error en PAGETOKEN.",$e);
-    }
-
-    return $this->datos;
+  public static function parse2Keys($key1,$key2,&$referencedData,$rawData){
+    # Check if array with 2 given keys exists: return its Value or NULL (by reference)
+    $jointKey = $key1."_".$key2;
+    $referencedData[$jointKey] = ( isset($rawData[$key1][$key2]) ) ? $rawData[$key1][$key2] : NULL;
   }
-  public function ACCOUNTS( $access_token = False ){
-    $fields = ["id","name","perms","username","instagram_accounts","picture","cover"];
-    if($access_token){ $fields[] = "access_token"; }
-    $fields = implode(",",$fields);
-
-    $query = "me/accounts?fields=$fields";
-
-    try{
-      $this->GET($query);
-      $this->datos =$this->datos["data"];
-      $this->datos = $this->parseACCOUNTS( $this->datos );
-    }catch(Exception $e){
-      $this->processError("Error en ACCOUNTS.",$e);
-    }
-
+  public static function issetKey($array,$key){
+    # Check if an associative array has a key declared and return its Value.
+    $keyValue = ( isset($array[$key]) ) ? $array[$key] : NULL;
+    return $keyValue;
   }
 
 
   ## DATA DISPLAYING METHODS ##
-  public function json( $echoJSON = True, $setJSONheader = True){
+  public function json( $data = NULL, $echoJSON = True, $setJSONheader = True){
     # Turns current state data into an API-friendly JSON representation.
 		$datos['status'] = $this->status;
 		$datos['message'] = $this->message;
-		$datos["data"] = $this->datos;
+		$datos["data"] = ( is_null($data) ) ? $this->datos : $data;
 
 		if($setJSONheader){ header('Content-Type: application/json'); }
 
@@ -348,6 +413,23 @@ class Facebook{
     print_r($this->datos);
   }
 
+
+  ## OBJECT VARIABLES ##
+  protected $app_secret = 'c478fbfb19e9f22f688b5db5144086c7';
+  protected $app_id = '632416283438924';
+
+  # default connection values
+  public $FacebookConnection = NULL;
+  public $saveTokenWith = "COOKIE";
+  public $Token = NULL;
+
+  # default state values
+  public $status = True;
+  public $message = "";
+
+  public $datos = array();
+  public $Accounts = array();
+  public $Conversations = array();
 }
 
 ?>
